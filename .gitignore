@@ -1,0 +1,33 @@
+# Environments & Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+bin/
+lib/
+include/
+
+# Local Environment Variables (API Keys)
+.env
+.env.local
+
+# Large Datasets (CSVs are generated dynamically on server startup or uploaded by user)
+data/
+*.csv
+*.xlsx
+*.json
+!*.json.example
+
+# Python Cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+desktop.ini

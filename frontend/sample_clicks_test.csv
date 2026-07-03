@@ -1,0 +1,6 @@
+user_id,timestamp,channel,campaign,cost
+USR_ALPHA,2026-06-01 10:15:00,Meta Ads,Meta_Prospecting,1.50
+USR_ALPHA,2026-06-03 14:20:00,Google Ads,Google_Brand_Search,2.00
+USR_BETA,2026-06-02 09:30:00,TikTok Ads,TikTok_Influencer,0.80
+USR_BETA,2026-06-04 18:45:00,Email,Weekly_Newsletter,0.05
+USR_GAMMA,2026-06-01 12:00:00,Meta Ads,Meta_Prospecting,1.50

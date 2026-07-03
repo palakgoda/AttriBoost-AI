@@ -118,9 +118,17 @@ def get_summary_metrics():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def validate_params(lookback_days: float, half_life: float):
+    """Input validation bounds for attribution configuration variables."""
+    if not (1.0 <= lookback_days <= 30.0):
+        raise HTTPException(status_code=400, detail="Lookback window must be between 1 and 30 days.")
+    if not (1.0 <= half_life <= 14.0):
+        raise HTTPException(status_code=400, detail="Time Decay Half-life must be between 1 and 14 days.")
+
 @app.get("/api/attribution")
 def get_attribution_results(lookback_days: float = 14.0, half_life: float = 7.0):
     """Returns channel metrics for all attribution models."""
+    validate_params(lookback_days, half_life)
     try:
         df_tp, df_conv = load_data()
         all_results = compute_all_models(df_tp, df_conv, half_life=half_life, lookback_days=lookback_days)
@@ -135,9 +143,13 @@ def reallocate_budget(payload: dict = Body(...)):
     Applies ROAS-proportional allocation with a 5% security minimum.
     """
     model_name = payload.get("model", "Linear")
-    total_budget = payload.get("total_budget", 10000.0)
-    lookback_days = payload.get("lookback_days", 14.0)
-    half_life = payload.get("half_life", 7.0)
+    total_budget = float(payload.get("total_budget", 50000.0))
+    lookback_days = float(payload.get("lookback_days", 14.0))
+    half_life = float(payload.get("half_life", 7.0))
+    
+    validate_params(lookback_days, half_life)
+    if not (10000.0 <= total_budget <= 250000.0):
+        raise HTTPException(status_code=400, detail="Simulated budget must be between $10,000 and $250,000.")
     
     try:
         df_tp, df_conv = load_data()
@@ -229,8 +241,10 @@ async def chat_copilot(
     """Conversational marketing analyst powered by Google Gemini."""
     user_message = payload.get("message", "")
     model_name = payload.get("model", "Linear")
-    lookback_days = payload.get("lookback_days", 14.0)
-    half_life = payload.get("half_life", 7.0)
+    lookback_days = float(payload.get("lookback_days", 14.0))
+    half_life = float(payload.get("half_life", 7.0))
+    
+    validate_params(lookback_days, half_life)
     
     # Retrieve API key
     gemini_key = x_gemini_key or os.getenv("GEMINI_API_KEY")
@@ -312,11 +326,44 @@ async def upload_custom_data(
 ):
     """Allows uploading custom CSV files to run attribution on custom data."""
     global _cached_tp, _cached_conv
+    
+    # 1. Enforce file size limit (max 5MB)
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    
+    tp_bytes = await touchpoints_file.read(MAX_FILE_SIZE + 1)
+    if len(tp_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Touchpoints file exceeds 5MB size limit.")
+    await touchpoints_file.seek(0)
+    
+    conv_bytes = await conversions_file.read(MAX_FILE_SIZE + 1)
+    if len(conv_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Conversions file exceeds 5MB size limit.")
+    await conversions_file.seek(0)
+    
+    # 2. Enforce file extension check
+    if not touchpoints_file.filename.endswith('.csv') or not conversions_file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are permitted.")
+        
     try:
         # Load files into DataFrames
         df_tp = pd.read_csv(touchpoints_file.file)
         df_conv = pd.read_csv(conversions_file.file)
         
+        # 3. Enforce max row limit check (50,000 rows)
+        if len(df_tp) > 50000 or len(df_conv) > 50000:
+            raise HTTPException(status_code=400, detail="Custom datasets are limited to a maximum of 50,000 rows for demo safety.")
+            
+        # 4. CSV Formula Injection Sanitization
+        def sanitize_cells(val):
+            if isinstance(val, str) and len(val) > 0 and val[0] in ('=', '+', '-', '@'):
+                return "'" + val  # Prepend single quote to escape execution in spreadsheet software
+            return val
+            
+        for col in df_tp.select_dtypes(include='object').columns:
+            df_tp[col] = df_tp[col].apply(sanitize_cells)
+        for col in df_conv.select_dtypes(include='object').columns:
+            df_conv[col] = df_conv[col].apply(sanitize_cells)
+            
         # Verify required headers
         req_tp = {'user_id', 'timestamp', 'channel', 'campaign', 'cost'}
         req_conv = {'user_id', 'timestamp', 'conversion_value'}

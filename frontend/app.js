@@ -281,6 +281,22 @@ function renderAttributionChart() {
     state.attributionChart.data.datasets[0].data = spend;
     state.attributionChart.data.datasets[1].data = revenue;
     state.attributionChart.update();
+    
+    // Sync accessible table fallback
+    const accBody = document.querySelector('#accessibility-table-body');
+    if (accBody) {
+        accBody.innerHTML = '';
+        modelData.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.channel}</td>
+                <td>$${item.spend.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>$${item.attributed_revenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>${item.roas.toFixed(2)}x</td>
+            `;
+            accBody.appendChild(tr);
+        });
+    }
 }
 
 // Register Listeners

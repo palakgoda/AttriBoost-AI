@@ -75,12 +75,12 @@
                         <!-- Advanced Marketing Knobs -->
                         <div class="input-group">
                             <label for="lookback-slider">Lookback Window: <span id="lookback-slider-value" style="color:var(--accent-purple); font-weight:600;">14 days</span></label>
-                            <input type="range" id="lookback-slider" min="1" max="30" step="1" value="14">
+                            <input type="range" id="lookback-slider" min="1" max="30" step="1" value="14" aria-label="Lookback Window in Days">
                             <p class="input-help">Attributes conversions only to clicks that happened within this timeframe before the purchase.</p>
                         </div>
                         <div class="input-group">
                             <label for="half-life-slider">Time Decay Half-Life: <span id="half-life-slider-value" style="color:var(--accent-purple); font-weight:600;">7 days</span></label>
-                            <input type="range" id="half-life-slider" min="1" max="14" step="1" value="7">
+                            <input type="range" id="half-life-slider" min="1" max="14" step="1" value="7" aria-label="Time Decay Half-life in Days">
                             <p class="input-help">Under the Time Decay model, credit cuts in half every X days.</p>
                         </div>
                         
@@ -169,7 +169,25 @@
 
                     <!-- Chart Container -->
                     <div class="chart-container">
-                        <canvas id="attribution-chart"></canvas>
+                        <canvas id="attribution-chart" aria-label="Marketing Channel Attribution Bar Chart" role="img"></canvas>
+                    </div>
+                    
+                    <!-- Accessible Data Fallback for Non-Visual Screen Readers -->
+                    <div class="sr-only" aria-live="polite">
+                        <h3>Attributed Spend and Revenue metrics under the active model:</h3>
+                        <table id="accessibility-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Channel</th>
+                                    <th>Spend</th>
+                                    <th>Attributed Revenue</th>
+                                    <th>ROAS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessibility-table-body">
+                                <!-- Dynamically populated by app.js -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -186,7 +204,7 @@
                     <div class="simulator-controls">
                         <div class="slider-group">
                             <label for="total-budget-slider">Simulated Monthly Budget: <span id="budget-value">$50,000</span></label>
-                            <input type="range" id="total-budget-slider" min="10000" max="250000" step="5000" value="50000">
+                            <input type="range" id="total-budget-slider" min="10000" max="250000" step="5000" value="50000" aria-label="Simulated Monthly Budget">
                         </div>
                     </div>
 
@@ -322,6 +340,16 @@
                             </div>
                             <button class="action-btn" id="upload-submit-btn" style="margin-top: 30px; width: 100%;">📤 Process Custom Datasets</button>
                             <div class="upload-status" id="upload-status"></div>
+
+                            <!-- Downloadable evaluation samples -->
+                            <div class="download-samples-box" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px;">
+                                <h4 style="font-size: 13px; font-weight: 500; margin-bottom: 5px; color: var(--text-primary);">Download Evaluation Sample Files</h4>
+                                <p class="input-help" style="margin-bottom: 12px;">Get prepared test files to evaluate the uploader instantly.</p>
+                                <div style="display: flex; gap: 8px;">
+                                    <a href="/static/sample_clicks_test.csv" download class="scale-btn" style="text-decoration:none; display:inline-block; text-align:center; padding: 10px; flex: 1;">📥 Clicks Log</a>
+                                    <a href="/static/sample_conversions_test.csv" download class="scale-btn" style="text-decoration:none; display:inline-block; text-align:center; padding: 10px; flex: 1;">📥 Conversions Log</a>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="template-instructions">

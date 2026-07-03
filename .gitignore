@@ -14,6 +14,7 @@ include/
 # Large Datasets (CSVs are generated dynamically on server startup or uploaded by user)
 data/
 *.csv
+!frontend/*.csv
 *.xlsx
 *.json
 !*.json.example

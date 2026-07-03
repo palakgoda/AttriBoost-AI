@@ -100,6 +100,10 @@ async function checkApiHealth() {
             els.gpuStatusBadge.classList.remove('amber');
             els.gpuStatusBadge.classList.add('green');
             els.gpuStatusText.textContent = 'NVIDIA RAPIDS (Active GPU)';
+        } else {
+            els.gpuStatusBadge.classList.remove('green');
+            els.gpuStatusBadge.classList.add('amber');
+            els.gpuStatusText.textContent = 'CPU Fallback (Simulated GPU)';
         }
     } catch (e) {
         console.error("Health check failed:", e);
@@ -476,7 +480,11 @@ function registerEventListeners() {
             els.cpuTimeLabel.textContent = `${lastItem.cpu_time_ms.toFixed(1)} ms`;
             els.gpuTimeLabel.textContent = `${lastItem.gpu_time_ms.toFixed(1)} ms`;
             
-            appendChatMessage('ai', `⚡ **NVIDIA RAPIDS cuDF Benchmark Completed!**\n\nProcessed **${lastItem.rows_processed.toLocaleString()}** join operations.\n- **CPU Pandas:** ${lastItem.cpu_time_ms.toFixed(1)} ms\n- **NVIDIA GPU (RAPIDS):** ${lastItem.gpu_time_ms.toFixed(1)} ms\n- **GPU Speedup Factor:** **${lastItem.speedup.toFixed(1)}x faster**!\n\nThis speedup allows marketers to perform real-time path calculations and budget shifts without waiting for long database pipeline processing.`);
+            const isSimulated = lastItem.gpu_mode.includes('Simulated');
+            const modeLabel = isSimulated ? 'Projected GPU (Simulated)' : 'NVIDIA GPU (RAPIDS)';
+            const timingNote = isSimulated ? '\n*(Note: Running in CPU fallback mode; GPU performance projected based on cuDF benchmark speedup ratios).*' : '';
+            
+            appendChatMessage('ai', `⚡ **Benchmark Completed!** (${lastItem.gpu_mode})\n\nProcessed **${lastItem.rows_processed.toLocaleString()}** join operations.\n- **CPU Pandas:** ${lastItem.cpu_time_ms.toFixed(1)} ms\n- **${modeLabel}:** ${lastItem.gpu_time_ms.toFixed(1)} ms\n- **GPU Speedup Factor:** **${lastItem.speedup.toFixed(1)}x faster**!${timingNote}\n\nThis speedup allows marketers to perform real-time path calculations and budget shifts without waiting for long database pipeline processing.`);
         } catch (e) {
             console.error(e);
             appendChatMessage('ai', `⚠️ Failed running benchmark: ${e.message}`);

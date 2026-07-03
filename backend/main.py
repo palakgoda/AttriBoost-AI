@@ -28,7 +28,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Set to False to comply with CORS spec when allow_origins is "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -76,9 +76,18 @@ def health_check():
 @app.post("/api/regenerate-data")
 def regenerate_dataset(payload: dict = Body(...)):
     """Allows triggering larger dataset generation for scaling tests."""
-    num_users = payload.get("num_users", 20000)
-    total_touchpoints = payload.get("total_touchpoints", 200000)
-    
+    try:
+        num_users = int(payload.get("num_users", 20000))
+        total_touchpoints = int(payload.get("total_touchpoints", 200000))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Scale parameters must be numeric integers.")
+        
+    # Enforce safe scale bounds to prevent server memory exhaustion
+    if not (1000 <= num_users <= 100000):
+        raise HTTPException(status_code=400, detail="Scale users parameter must be between 1,000 and 100,000.")
+    if not (10000 <= total_touchpoints <= 1000000):
+        raise HTTPException(status_code=400, detail="Scale touchpoints parameter must be between 10,000 and 1,000,000.")
+        
     try:
         generate_marketing_data(
             output_dir=DATA_DIR,
@@ -295,9 +304,9 @@ Keep your response concise, bulleted where appropriate, and formatted in clean M
         response = None
         last_error_msg = ""
         
-        for model_name in models_to_try:
+        for gemini_model_name in models_to_try:
             try:
-                model = genai.GenerativeModel(model_name)
+                model = genai.GenerativeModel(gemini_model_name)
                 response = model.generate_content(
                     contents=[
                         {"role": "user", "parts": [system_instruction + f"\nUser question: {user_message}"]}
@@ -306,7 +315,7 @@ Keep your response concise, bulleted where appropriate, and formatted in clean M
                 break # Success!
             except Exception as e:
                 last_error_msg = str(e)
-                print(f"Model {model_name} failed: {e}")
+                print(f"Model {gemini_model_name} failed: {e}")
                 continue
                 
         if response is None:
@@ -403,7 +412,10 @@ def read_root():
 
 @app.get("/{path:path}")
 def read_static(path: str):
-    file_path = os.path.join("frontend", path)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
+    base_dir = os.path.abspath("frontend")
+    requested_path = os.path.abspath(os.path.join(base_dir, path))
+    if not requested_path.startswith(base_dir + os.sep) and requested_path != base_dir:
+        return FileResponse("frontend/index.html")
+    if os.path.isfile(requested_path):
+        return FileResponse(requested_path)
     return FileResponse("frontend/index.html")

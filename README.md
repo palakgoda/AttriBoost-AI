@@ -168,7 +168,8 @@ To run the automated tests locally:
 
 ### Out-of-Scope (Demo Limitations):
 *   **No Authentication Layer:** This project is a functional prototype. There is no user authentication, OAuth, or RBAC (Role-Based Access Control) built-in.
-*   **Open CORS Policy:** CORS is set to open (`*`) to facilitate local developer testing. For production deployment, this should be restricted to the specific origin.
+*   **Open CORS Policy:** CORS is configured to open (`*`) with credentials disabled (`allow_credentials=False`) to satisfy standard browser security guidelines. In production, origins should be locked down to the frontend domain.
+*   **Simulated GPU Benchmarks (CPU Mode):** If run on a CPU-only server or local laptop without CUDA/NVIDIA GPUs, the timing metrics in the benchmark tab are simulated using pre-profiled execution timings from real cuDF GPU runs. Real-time acceleration measurements require a GPU-enabled Google Cloud Run or VM host.
 
 ---
 

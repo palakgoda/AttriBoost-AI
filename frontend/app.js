@@ -27,7 +27,7 @@ const els = {
     kpiRevenue: document.querySelector('#kpi-revenue .kpi-value'),
     kpiRoas: document.querySelector('#kpi-roas .kpi-value'),
     kpiScale: document.querySelector('#kpi-scale .kpi-value'),
-    
+
     // Model Swapper
     modelTabs: document.querySelectorAll('.model-tab'),
 
@@ -35,13 +35,13 @@ const els = {
     budgetSlider: document.querySelector('#total-budget-slider'),
     budgetValueText: document.querySelector('#budget-value'),
     reallocationTableBody: document.querySelector('#reallocation-table tbody'),
-    
+
     // Gemini Chat Copilot (Chat Tab)
     chatMessages: document.querySelector('#chat-messages'),
     chatInput: document.querySelector('#chat-input'),
     chatSendBtn: document.querySelector('#chat-send-btn'),
     suggestionChips: document.querySelectorAll('.suggestion-chips .chip'),
-    
+
     // Configuration Modal
     settingsToggle: document.querySelector('#settings-toggle'),
     settingsModal: document.querySelector('#settings-modal'),
@@ -49,13 +49,13 @@ const els = {
     apiKeyInput: document.querySelector('#api-key-input'),
     scaleBtns: document.querySelectorAll('.scale-btn'),
     regenerateDataBtn: document.querySelector('#regenerate-data-btn'),
-    
+
     // Sliders
     lookbackSlider: document.querySelector('#lookback-slider'),
     lookbackSliderValue: document.querySelector('#lookback-slider-value'),
     halfLifeSlider: document.querySelector('#half-life-slider'),
     halfLifeSliderValue: document.querySelector('#half-life-slider-value'),
-    
+
     // Data Ingestion (Upload Tab)
     touchpointsFileInput: document.querySelector('#touchpoints-file-input'),
     conversionsFileInput: document.querySelector('#conversions-file-input'),
@@ -77,16 +77,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.geminiApiKey) {
         els.apiKeyInput.value = state.geminiApiKey;
     }
-    
+
     // Check Health to see if GPU is active
     await checkApiHealth();
-    
+
     // Initialize Default Charts FIRST
     initCharts();
-    
+
     // Fetch Summary & Attribution Data SECOND
     await refreshDashboard();
-    
+
     // Register UI Listeners
     registerEventListeners();
 });
@@ -103,7 +103,7 @@ async function checkApiHealth() {
         } else {
             els.gpuStatusBadge.classList.remove('green');
             els.gpuStatusBadge.classList.add('amber');
-            els.gpuStatusText.textContent = 'CPU Fallback (GPU Profiled)';
+            els.gpuStatusText.textContent = 'CPU Fallback (No GPU)';
         }
     } catch (e) {
         console.error("Health check failed:", e);
@@ -117,14 +117,14 @@ async function refreshDashboard() {
         const summaryRes = await fetch('/api/summary');
         state.summary = await summaryRes.json();
         updateKpis(state.summary);
-        
+
         // Fetch Attribution Results
         const attributionRes = await fetch(`/api/attribution?lookback_days=${state.lookbackDays}&half_life=${state.halfLife}`);
         state.attribution = await attributionRes.json();
-        
+
         // Trigger Budget Reallocation Calculation
         await updateReallocation();
-        
+
         // Redraw Attribution Chart
         renderAttributionChart();
     } catch (e) {
@@ -134,9 +134,9 @@ async function refreshDashboard() {
 
 // Update KPI UI Elements
 function updateKpis(summary) {
-    els.kpiSpend.textContent = `$${summary.total_spend.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    els.kpiSpend.textContent = `$${summary.total_spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     els.kpiConversions.textContent = summary.total_conversions.toLocaleString();
-    els.kpiRevenue.textContent = `$${summary.total_revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    els.kpiRevenue.textContent = `$${summary.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     els.kpiRoas.textContent = `${summary.overall_roas.toFixed(2)}x`;
     els.kpiScale.textContent = summary.total_touchpoints.toLocaleString() + " rows";
 }
@@ -145,7 +145,7 @@ function updateKpis(summary) {
 async function updateReallocation() {
     const budget = parseFloat(els.budgetSlider.value);
     els.budgetValueText.textContent = `$${budget.toLocaleString()}`;
-    
+
     try {
         const res = await fetch('/api/reallocate', {
             method: 'POST',
@@ -157,24 +157,24 @@ async function updateReallocation() {
                 half_life: state.halfLife
             })
         });
-        
+
         state.reallocation = await res.json();
-        
+
         // Populate Table
         els.reallocationTableBody.innerHTML = '';
         state.reallocation.recommendations.forEach(rec => {
             const tr = document.createElement('tr');
-            
+
             const isOrganic = rec.channel === 'Organic Search';
             const changeClass = rec.percentage_change > 0 ? 'green' : (rec.percentage_change < 0 ? 'red' : '');
             const changeSymbol = rec.percentage_change > 0 ? '+' : '';
             const changeText = isOrganic ? 'N/A (Free)' : `${changeSymbol}${rec.percentage_change}%`;
-            
+
             tr.innerHTML = `
                 <td><strong>${rec.channel}</strong></td>
                 <td><span class="badge ${rec.roas > 2 ? 'green' : 'amber'}">${rec.roas.toFixed(2)}x</span></td>
-                <td>$${rec.current_spend.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
-                <td>$${rec.recommended_spend.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+                <td>$${rec.current_spend.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                <td>$${rec.recommended_spend.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                 <td><span class="delta-val ${changeClass}">${changeText}</span></td>
             `;
             els.reallocationTableBody.appendChild(tr);
@@ -276,16 +276,16 @@ function initCharts() {
 function renderAttributionChart() {
     const modelData = state.attribution[state.currentModel];
     if (!modelData) return;
-    
+
     const labels = modelData.map(item => item.channel);
     const spend = modelData.map(item => item.spend);
     const revenue = modelData.map(item => item.attributed_revenue);
-    
+
     state.attributionChart.data.labels = labels;
     state.attributionChart.data.datasets[0].data = spend;
     state.attributionChart.data.datasets[1].data = revenue;
     state.attributionChart.update();
-    
+
     // Sync accessible table fallback
     const accBody = document.querySelector('#accessibility-table-body');
     if (accBody) {
@@ -294,8 +294,8 @@ function renderAttributionChart() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.channel}</td>
-                <td>$${item.spend.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td>$${item.attributed_revenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>$${item.spend.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td>$${item.attributed_revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td>${item.roas.toFixed(2)}x</td>
             `;
             accBody.appendChild(tr);
@@ -328,18 +328,18 @@ function registerEventListeners() {
         tab.addEventListener('click', async (e) => {
             els.modelTabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            
+
             state.currentModel = tab.getAttribute('data-model');
             renderAttributionChart();
             await updateReallocation();
         });
     });
-    
+
     // Budget range slider
     els.budgetSlider.addEventListener('input', async () => {
         await updateReallocation();
     });
-    
+
     // Lookback slider
     els.lookbackSlider.addEventListener('input', () => {
         state.lookbackDays = parseFloat(els.lookbackSlider.value);
@@ -348,7 +348,7 @@ function registerEventListeners() {
     els.lookbackSlider.addEventListener('change', async () => {
         await refreshDashboard();
     });
-    
+
     // Half-Life slider
     els.halfLifeSlider.addEventListener('input', () => {
         state.halfLife = parseFloat(els.halfLifeSlider.value);
@@ -365,13 +365,13 @@ function registerEventListeners() {
     els.settingsClose.addEventListener('click', () => {
         els.settingsModal.classList.remove('active');
     });
-    
+
     // API key inputs
     els.apiKeyInput.addEventListener('change', () => {
         state.geminiApiKey = els.apiKeyInput.value.trim();
         localStorage.setItem('gemini_api_key', state.geminiApiKey);
     });
-    
+
     // Data scale selection
     els.scaleBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -381,12 +381,12 @@ function registerEventListeners() {
             state.scaleTps = parseInt(btn.getAttribute('data-tps'));
         });
     });
-    
+
     // Regenerate mock data triggers
     els.regenerateDataBtn.addEventListener('click', async () => {
         els.regenerateDataBtn.disabled = true;
         els.regenerateDataBtn.textContent = 'Generating...';
-        
+
         try {
             const res = await fetch('/api/regenerate-data', {
                 method: 'POST',
@@ -441,7 +441,7 @@ function registerEventListeners() {
                 showUploadStatus('success', `✅ ${result.message}`);
                 // Refresh dashboard with the uploaded data
                 await refreshDashboard();
-                
+
                 // Clear inputs
                 els.touchpointsFileInput.value = '';
                 els.conversionsFileInput.value = '';
@@ -456,35 +456,38 @@ function registerEventListeners() {
             els.uploadSubmitBtn.textContent = '📤 Process Custom Datasets';
         }
     });
-    
+
     // Run live benchmarks
     els.runBenchmarkBtn.addEventListener('click', async () => {
         els.runBenchmarkBtn.disabled = true;
         els.runBenchmarkBtn.textContent = 'Running Scale Tests...';
-        
+
         try {
             const res = await fetch('/api/benchmark');
             const data = await res.json();
-            
+
             // Plot timing charts
             const cpus = data.map(item => item.cpu_time_ms);
             const gpus = data.map(item => item.gpu_time_ms);
-            
+
             state.benchmarkChart.data.datasets[0].data = cpus;
             state.benchmarkChart.data.datasets[1].data = gpus;
             state.benchmarkChart.update();
-            
+
             // Update labels
             const lastItem = data[data.length - 1];
-            els.maxSpeedupText.textContent = `${lastItem.speedup.toFixed(1)}x`;
+            const gpuWasMeasured = lastItem.speedup !== null && lastItem.gpu_time_ms !== null;
+
             els.cpuTimeLabel.textContent = `${lastItem.cpu_time_ms.toFixed(1)} ms`;
-            els.gpuTimeLabel.textContent = `${lastItem.gpu_time_ms.toFixed(1)} ms`;
-            
-            const isSimulated = lastItem.gpu_mode.includes('Simulated') || lastItem.gpu_mode.includes('Profiled');
-            const modeLabel = isSimulated ? 'Projected GPU (Profiled)' : 'NVIDIA GPU (RAPIDS)';
-            const timingNote = isSimulated ? '\n*(Note: Running in CPU fallback; GPU performance based on real pre-measured NVIDIA T4 GPU profiled runs).*' : '';
-            
-            appendChatMessage('ai', `⚡ **Benchmark Completed!** (${lastItem.gpu_mode})\n\nProcessed **${lastItem.rows_processed.toLocaleString()}** join operations.\n- **CPU Pandas:** ${lastItem.cpu_time_ms.toFixed(1)} ms\n- **${modeLabel}:** ${lastItem.gpu_time_ms.toFixed(1)} ms\n- **GPU Speedup Factor:** **${lastItem.speedup.toFixed(1)}x faster**!${timingNote}\n\nThis speedup allows marketers to perform real-time path calculations and budget shifts without waiting for long database pipeline processing.`);
+            els.maxSpeedupText.textContent = gpuWasMeasured ? `${lastItem.speedup.toFixed(1)}x` : 'N/A';
+            els.gpuTimeLabel.textContent = gpuWasMeasured ? `${lastItem.gpu_time_ms.toFixed(1)} ms` : 'N/A';
+
+            const speedupLine = gpuWasMeasured
+                ? `- **GPU Speedup Factor:** **${lastItem.speedup.toFixed(1)}x faster**!`
+                : `- **GPU Speedup Factor:** not measured in this environment (no GPU available here — see our benchmark notebook for real T4 GPU results)`;
+            const gpuTimeLine = gpuWasMeasured ? `${lastItem.gpu_time_ms.toFixed(1)} ms` : 'N/A (no GPU in this environment)';
+
+            appendChatMessage('ai', `⚡ **Benchmark Completed!** (${lastItem.gpu_mode})\n\nProcessed **${lastItem.rows_processed.toLocaleString()}** join operations.\n- **CPU Pandas:** ${lastItem.cpu_time_ms.toFixed(1)} ms\n- **GPU cuDF:** ${gpuTimeLine}\n${speedupLine}\n\nSee our benchmark notebook for real, measured NVIDIA T4 GPU results at scale.`);
         } catch (e) {
             console.error(e);
             appendChatMessage('ai', `⚠️ Failed running benchmark: ${e.message}`);
@@ -493,13 +496,13 @@ function registerEventListeners() {
             els.runBenchmarkBtn.textContent = '⚡ Run Performance Scale Test';
         }
     });
-    
+
     // Send Chat Copilot Messages
     els.chatSendBtn.addEventListener('click', () => sendCopilotMessage());
     els.chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendCopilotMessage();
     });
-    
+
     // Suggestion chips handler
     els.suggestionChips.forEach(chip => {
         chip.addEventListener('click', () => {
@@ -519,7 +522,7 @@ function showUploadStatus(type, message) {
 function appendChatMessage(sender, text) {
     const msg = document.createElement('div');
     msg.classList.add('message', sender);
-    
+
     // Minimal markdown conversions
     let formattedText = text
         .replace(/\n/g, '<br>')
@@ -528,7 +531,7 @@ function appendChatMessage(sender, text) {
         .replace(/⚠️/g, '⚠️')
         .replace(/⚡/g, '⚡')
         .replace(/✅/g, '✅');
-        
+
     msg.innerHTML = formattedText;
     els.chatMessages.appendChild(msg);
     els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
@@ -538,18 +541,18 @@ function appendChatMessage(sender, text) {
 async function sendCopilotMessage() {
     const text = els.chatInput.value.trim();
     if (!text) return;
-    
+
     // Append user message
     appendChatMessage('user', text);
     els.chatInput.value = '';
-    
+
     // Loading indicator
     const loader = document.createElement('div');
     loader.classList.add('message', 'ai');
     loader.innerHTML = 'Thinking... <span class="status-dot amber pulse" style="display:inline-block; margin-left:5px;"></span>';
     els.chatMessages.appendChild(loader);
     els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
-    
+
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -564,9 +567,9 @@ async function sendCopilotMessage() {
                 half_life: state.halfLife
             })
         });
-        
+
         const data = await response.json();
-        
+
         // Remove loader and append reply
         els.chatMessages.removeChild(loader);
         appendChatMessage('ai', data.reply);

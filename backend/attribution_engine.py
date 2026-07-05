@@ -183,6 +183,15 @@ def run_performance_benchmark(df_tp, df_conv):
     # Define dataset fractions to test scaling
     sizes = [0.1, 0.5, 1.0]
     results = []
+
+    # Warm up the GPU first: the first cuDF/CUDA call in a process pays a
+    # one-time cost for context init + kernel JIT compilation. Without this,
+    # that fixed cost gets wrongly attributed to whichever size runs first,
+    # making small sizes look catastrophically slow on GPU.
+    if GPU_AVAILABLE:
+        warmup_tp = df_tp.iloc[:max(1000, int(len(df_tp) * 0.01))]
+        warmup_conv = df_conv.iloc[:max(50, int(len(df_conv) * 0.01))]
+        run_attribution_pipeline(warmup_tp, warmup_conv, "Linear", use_gpu=True)
     
     for size in sizes:
         sample_size_tp = int(len(df_tp) * size)
@@ -199,23 +208,19 @@ def run_performance_benchmark(df_tp, df_conv):
             _, gpu_time = run_attribution_pipeline(tp_sample, conv_sample, "Linear", use_gpu=True)
             gpu_mode = "NVIDIA cuDF (GPU Active)"
         else:
-            # When running on standard Cloud Run CPU instances without GPU hardware access,
-            # we report real pre-measured benchmarks captured on an NVIDIA T4 GPU cluster 
-            # to maintain complete scientific integrity rather than using dynamic math scaling.
-            profiled = {
-                0.1: {"gpu_time": 0.0124, "mode": "NVIDIA cuDF (GPU Profiled)"},
-                0.5: {"gpu_time": 0.0341, "mode": "NVIDIA cuDF (GPU Profiled)"},
-                1.0: {"gpu_time": 0.0528, "mode": "NVIDIA cuDF (GPU Profiled)"}
-            }.get(size, {"gpu_time": 0.05, "mode": "NVIDIA cuDF (GPU Profiled)"})
-            gpu_time = profiled["gpu_time"]
-            gpu_mode = profiled["mode"]
+            # No GPU hardware available in this environment (e.g. Cloud Run CPU
+            # instances). We do not fabricate a number here — we report that
+            # GPU timing was not measured, and surface the benchmark_cudf.ipynb
+            # results (measured on a real T4) as the source of truth instead.
+            gpu_time = None
+            gpu_mode = "Not measured (no GPU in this environment — see benchmark_cudf.ipynb for T4 results)"
             
         results.append({
             "dataset_percentage": int(size * 100),
             "rows_processed": sample_size_tp + sample_size_conv,
             "cpu_time_ms": round(cpu_time * 1000, 2),
-            "gpu_time_ms": round(gpu_time * 1000, 2),
-            "speedup": round(cpu_time / gpu_time, 1),
+            "gpu_time_ms": round(gpu_time * 1000, 2) if gpu_time is not None else None,
+            "speedup": round(cpu_time / gpu_time, 1) if gpu_time is not None else None,
             "gpu_mode": gpu_mode
         })
         

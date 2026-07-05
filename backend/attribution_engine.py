@@ -5,6 +5,7 @@ import numpy as np
 
 # Try importing RAPIDS cuDF
 try:
+    # pyrefly: ignore [missing-import]
     import cudf
     GPU_AVAILABLE = True
     print("NVIDIA RAPIDS cuDF is available. GPU acceleration active.")
@@ -27,9 +28,14 @@ def run_attribution_pipeline(df_tp, df_conv, model_type="Linear", use_gpu=False,
         tp = df_tp.copy()
         conv = df_conv.copy()
         
-    # Ensure datetime format
-    tp['timestamp'] = pd.to_datetime(tp['timestamp'])
-    conv['timestamp'] = pd.to_datetime(conv['timestamp'])
+    # Ensure datetime format — use the matching library so cuDF frames
+    # stay on GPU instead of being implicitly pulled back to host memory
+    if use_gpu and GPU_AVAILABLE:
+        tp['timestamp'] = cudf.to_datetime(tp['timestamp'])
+        conv['timestamp'] = cudf.to_datetime(conv['timestamp'])
+    else:
+        tp['timestamp'] = pd.to_datetime(tp['timestamp'])
+        conv['timestamp'] = pd.to_datetime(conv['timestamp'])
     
     # 2. Join touchpoints and conversions on user_id
     # To save memory, we can filter touchpoints first to only users who converted

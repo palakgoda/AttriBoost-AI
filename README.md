@@ -144,7 +144,7 @@ You can execute and verify this benchmark for free using Google Colab:
 2.  Click **Upload** and upload our pre-configured [benchmark_cudf.ipynb](file:///c:/Users/admin/Desktop/Gen_Academy_Cohort%202/benchmark_cudf.ipynb) file from this repository.
 3.  Select a **T4 GPU runtime** (Runtime ➔ Change runtime type ➔ T4 GPU).
 4.  Click **Runtime ➔ Run All**.
-5.  The notebook installs the NVIDIA RAPIDS drivers, executes `backend/benchmark_cudf.py` on the T4 GPU, and outputs the real measured execution times and speedup factors (averaging 30x+ speedup). This serves as the verified audit trail and empirical proof of our hardware acceleration benchmarks.
+5.  The notebook installs the NVIDIA RAPIDS drivers, executes backend/benchmark_cudf.py on the T4 GPU, and outputs the real measured execution times and speedup factors. GPU acceleration gains increase with data scale, reaching up to 2.6x at 2M+ rows in our testing. This serves as the verified audit trail and empirical proof of our hardware acceleration benchmarks.
 
 ---
 
@@ -176,13 +176,12 @@ To run the automated tests locally:
 *   **Extension Enforcement:** Only files ending with `.csv` are processed; arbitrary payloads are rejected.
 *   **CSV Formula Injection Sanitization:** The uploader automatically sanitizes input cells. Any string starting with spreadsheet formula operators (`=`, `+`, `-`, `@`) is escaped with a prepended single quote to protect users opening exported files in Excel or Sheets.
 *   **Query Input Sanitization:** Parametric input variables are strictly bound-checked on the backend (`lookback_days` must be 1-30, `half_life` 1-14, and `total_budget` $10k-$250k).
-*   **Secure API Key Storage:** Gemini API keys are processed server-side via environmental variables (`.env`). No API keys are ever stored client-side or exposed in browser requests.
+*   **API Key Storage:** Gemini API keys can be set server-side via environmental variables (GEMINI_API_KEY) for secure deployment. A frontend Settings field is also available for quick local testing, which stores the key in browser localStorage — recommended for development only, not public-facing deployments.
 
 ### Out-of-Scope (Demo Limitations):
 *   **No Authentication Layer:** This project is a functional prototype. There is no user authentication, OAuth, or RBAC (Role-Based Access Control) built-in.
 *   **Open CORS Policy:** CORS is configured to open (`*`) with credentials disabled (`allow_credentials=False`) to satisfy standard browser security guidelines. In production, origins should be locked down to the frontend domain.
-*   **Simulated GPU Benchmarks (CPU Mode):** If run on a CPU-only server or local laptop without CUDA/NVIDIA GPUs, the timing metrics in the benchmark tab are simulated using pre-profiled execution timings from real cuDF GPU runs. Real-time acceleration measurements require a GPU-enabled Google Cloud Run or VM host.
-
+*   **Real GPU Benchmarks Only:** If run on a CPU-only server (like standard Cloud Run) without CUDA hardware, the benchmark tab honestly reports "Not measured — no GPU in this environment" rather than simulating a number. Real GPU timing requires running benchmark_cudf.ipynb on a CUDA-enabled environment (e.g., Colab T4), which is provided in this repo for verification.
 ---
 
 ## ♿ Accessibility Compliance (a11y)
